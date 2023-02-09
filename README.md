@@ -47,11 +47,18 @@ bin/elasticsearch-setup-passwords interactive
 
 ### go
 ```go
+package main
+
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
 func main() {
@@ -72,13 +79,67 @@ func main() {
 	}
 	defer res.Body.Close()
 	fmt.Println("connect to es success")
-	// 链式操作
-	es.Index(
+	// 新增
+	add := add(es)
+	fmt.Println("新增：", add)
+	// 查询
+	query := query(es)
+	fmt.Println("query:", query.String())
+	//删除
+	deltete := delete(es)
+	fmt.Println("query:", deltete)
+}
+
+// 新增
+func add(es *elasticsearch.Client) *esapi.Response {
+	add, err := es.Index(
 		"test",
-		strings.NewReader(`{"title" : "logging1212"}`),
+		strings.NewReader(`{"title" : "hello word"}`),
 		es.Index.WithRefresh("true"),
 		es.Index.WithPretty(),
 		es.Index.WithFilterPath("result", "_id"),
 	)
+	if err != nil {
+		panic(err)
+	}
+	return add
 }
+
+// 查询
+func query(es *elasticsearch.Client) *esapi.Response {
+
+	var buf bytes.Buffer
+	where := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"title": "hello word",
+			},
+		},
+	}
+	if err := json.NewEncoder(&buf).Encode(where); err != nil {
+		log.Fatalf("Error encoding query: %s", err)
+	}
+	query, err := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex("test"),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if err != nil {
+		panic(err)
+	}
+	return query
+}
+
+// 删除
+func delete(es *elasticsearch.Client) *esapi.Response {
+	// 删除test索引下id=dae5NoYBvw08KezVlFPX
+	delete, err := es.Delete("test", "dae5NoYBvw08KezVlFPX")
+	if err != nil {
+		panic(err)
+	}
+	return delete
+}
+
 ```
