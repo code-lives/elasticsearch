@@ -1,6 +1,6 @@
 version: "3.1"
 services:
-  elasticsearch:
+    elasticsearch:
     restart: always #docker 启动这个容器也跟着启动
     image: elasticsearch:8.6.0 #容器名字对应版本好
     container_name: elasticsearch #容器的名称
@@ -15,6 +15,11 @@ services:
       - $PWD/es/data/:/usr/share/elasticsearch/data
       - $PWD/es/logs/:/usr/share/elasticsearch/logs/
       - $PWD/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    command: >
+      bash -c "
+        ./bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.6.0/elasticsearch-analysis-ik-8.6.0.zip;
+        /usr/local/bin/docker-entrypoint.sh
+      "
   # logstash:
   #   image: logstash:7.12.1
   #   container_name: logstash
