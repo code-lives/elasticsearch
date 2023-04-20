@@ -1,22 +1,30 @@
+## 注意 (增加了分词)
 
-## 注意
-⚠️  kibana连接es的账号密码 对应的kibana.yml以及第三步里面kibana的密码。
+⚠️ kibana 连接 es 的账号密码 对应的 kibana.yml 以及第三步里面 kibana 的密码。
 
 ```php
 elasticsearch.username: "kibana"
 elasticsearch.password: "123456"
 ```
+
 ##### 启动命令
+
     docker-compose up -d
-###### 第一步 进入es容器
+
+###### 第一步 进入 es 容器
+
 ```php
 docker exec -it elasticsearch sh
 ```
-###### 第二步 进入es容器
+
+###### 第二步 进入 es 容器
+
 ```php
 bin/elasticsearch-setup-passwords interactive
 ```
-###### 第三步 输入y 下一步，进行密码设置
+
+###### 第三步 输入 y 下一步，进行密码设置
+
 ```php
     Enter password for [elastic]:
     Reenter password for [elastic]:
@@ -38,14 +46,208 @@ bin/elasticsearch-setup-passwords interactive
     Changed password for user [remote_monitoring_user]
     Changed password for user [elastic]
 ```
+
 ##### 登录，账号密码对应的 第三步 第一个设置的密码
+
 ```php
 127.0.0.1:5601
 账号 elastic
 密码 123456
 ```
 
+### Laravel php
+
+#### 普通
+
+```
+<?php
+
+namespace App\Http\Controllers;
+
+use Elastic\Elasticsearch\ClientBuilder;
+
+class ElasticSearch extends Controller
+{
+    public $client = null;
+    public function __construct()
+    {
+        $this->client = ClientBuilder::create()
+            ->setHosts(["http://elasticsearch:9200"])
+            ->setBasicAuthentication('elastic', "123456")
+            ->build();
+    }
+    public function infos()
+    {
+        $response = $this->client->info();
+        echo "<pre>";
+        print_R($response);
+    }
+    // 创建
+    public function esCreate()
+    {
+        $doc = [
+            'index' => 'my_index',
+            'type' => 'doc',
+            'id' => 2,
+            'body' => [
+                'title' => "一二三四五六七八九十",
+                'content' => "额。数字啊",
+            ],
+            'form' => 0,
+            'size' => 10,
+        ];
+
+        $response = $this->client->index($doc);
+        dd($response->asArray());
+    }
+    public function esQuery()
+    {
+        $params = [
+            'index' => 'my_index',
+            'body' => [
+                'query' => [
+                    'match' => [
+                        'title' => '一二'
+                    ]
+                ]
+            ]
+        ];
+        $response = $this->client->search($params);
+        dd($response->asArray());
+    }
+    public function esDelete()
+    {
+        $params = [
+            'index' => 'my_index',
+            'id' => 1,
+        ];
+        $response = $this->client->delete($params);
+        dd($response->asArray());
+    }
+
+    public function esIkSearch()
+    {
+        $params = [
+            'index' => 'my_index',
+            'body' => [
+                'settings' => [
+                    'analysis' => [
+                        'analyzer' => [
+                            'ik_max_word' => [
+                                'tokenizer' => 'ik_max_word',
+                            ],
+                        ],
+                    ],
+                ],
+                'mappings' => [
+                    'properties' => [
+                        'title' => [
+                            'type' => 'text',
+                            'analyzer' => 'ik_max_word',
+                        ],
+                        'content' => [
+                            'type' => 'text',
+                            'analyzer' => 'ik_max_word',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+}
+```
+
+#### 分词
+
+```
+use Elasticsearch\ClientBuilder;
+
+$client = ClientBuilder::create()->build();
+
+// 创建索引
+$params = [
+    'index' => 'my_index',
+    'body' => [
+        'settings' => [
+            'analysis' => [
+                'analyzer' => [
+                    'ik_max_word' => [
+                        'tokenizer' => 'ik_max_word',
+                    ],
+                ],
+            ],
+        ],
+        'mappings' => [
+            'properties' => [
+                'title' => [
+                    'type' => 'text',
+                    'analyzer' => 'ik_max_word',
+                ],
+                'content' => [
+                    'type' => 'text',
+                    'analyzer' => 'ik_max_word',
+                ],
+            ],
+        ],
+    ],
+];
+
+$client->indices()->create($params);
+
+// 添加文档
+$params = [
+    'index' => 'my_index',
+    'id' => '1',
+    'body' => [
+        'title' => '这是一个测试标题',
+        'content' => '这是一个测试内容，包含一些关键词：测试、标题、内容',
+    ],
+];
+
+$client->index($params);
+
+// 更新文档
+$params = [
+    'index' => 'my_index',
+    'id' => '1',
+    'body' => [
+        'doc' => [
+            'title' => '这是一个更新后的标题',
+            'content' => '这是一个更新后的内容，包含一些关键词：更新、标题、内容',
+        ],
+    ],
+];
+
+$client->update($params);
+
+// 删除文档
+$params = [
+    'index' => 'my_index',
+    'id' => '1',
+];
+
+$client->delete($params);
+
+// 搜索文档
+$params = [
+    'index' => 'my_index',
+    'body' => [
+        'query' => [
+            'multi_match' => [
+                'query' => '测试标题',
+                'fields' => ['title', 'content'],
+                'analyzer' => 'ik_max_word',
+            ],
+        ],
+    ],
+];
+
+$response = $client->search($params);
+
+```
+
 ### go
+
 ```go
 package main
 
@@ -141,5 +343,4 @@ func delete(es *elasticsearch.Client) *esapi.Response {
 	}
 	return delete
 }
-
 ```
