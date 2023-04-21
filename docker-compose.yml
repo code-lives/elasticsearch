@@ -20,24 +20,15 @@ services:
         ./bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.6.0/elasticsearch-analysis-ik-8.6.0.zip;
         /usr/local/bin/docker-entrypoint.sh
       "
-  # logstash:
-  #   image: logstash:7.12.1
-  #   container_name: logstash
-  #   restart: always
-  #   ports:
-  #     - "5044:5044"
-  #     - "9600:9600"
-  #   environment:
-  #     - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
-  kibana:
-    restart: always #docker 启动这个容器也跟着启动
-    image: kibana:8.6.0 #容器名字对应版本好
-    container_name: kibana #容器的名称
-    ports:
-      - "5601:5601"
-    environment:
-      - "TZ=Asia/Shanghai"
-    volumes:
-      - $PWD/kibana.yml:/usr/share/kibana/config/kibana.yml
-    depends_on:
-      - elasticsearch
+    kibana:
+      restart: always #docker 启动这个容器也跟着启动
+      image: kibana:8.6.0 #容器名字对应版本好
+      container_name: kibana #容器的名称
+      ports:
+        - "5601:5601"
+      environment:
+        - "TZ=Asia/Shanghai"
+      volumes:
+        - $PWD/kibana.yml:/usr/share/kibana/config/kibana.yml
+      depends_on:
+        - elasticsearch
