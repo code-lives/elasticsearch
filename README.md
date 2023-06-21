@@ -10,6 +10,8 @@ logstash 连接器 用于连接 msyql https://mvnrepository.com/artifact/mysql/m
 
 ### conf.d 文件 写了 mysql.conf 连接配置等。
 
+如果自己写的脚本运行报错 会参数一个.lock 的文件 记得删除【config】文件下
+
 ### logstash/config 文件下的 pipelines.yml 配置了 自动执行 mysql.conf
 
 ```php
